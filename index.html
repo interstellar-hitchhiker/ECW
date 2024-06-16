@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Constant Point in a Changing World</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #1e1e1e;
+            color: #f4f4f9;
+            text-align: center;
+        }
+
+        header {
+            background: #333;
+            color: #fff;
+            padding: 1em 0;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            font-family: 'Merriweather', serif;
+            font-size: 2em;
+        }
+
+        main {
+            padding: 2em;
+            text-align: center;
+        }
+
+        .theme-section {
+            margin-bottom: 2em;
+        }
+
+        #visualization-canvas {
+            margin: 0 auto;
+            display: block;
+            border: 2px solid #555;
+            border-radius: 5px;
+        }
+
+        .instructions {
+            font-size: 1.2em;
+            margin-bottom: 1em;
+        }
+
+        #explanation {
+            background: #2e2e2e;
+            color: #f4f4f9;
+            padding: 1em;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin: 2em auto;
+            text-align: left;
+        }
+
+        .quote {
+            font-style: italic;
+            margin-top: 1em;
+            color: #cccccc;
+        }
+
+        ul {
+            margin-top: 0.5em;
+            padding-left: 1.2em;
+        }
+
+        ul li {
+            margin-bottom: 0.5em;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Constant Point in a Changing World</h1>
+    </header>
+    <main>
+        <section id="theme-virtue" class="theme-section">
+            <div id="visualization-canvas"></div>
+            <p id="explanation"></p>
+        </section>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script>
+        let a = 0; // x-coordinate of the fixed point
+        let b = 0; // y-coordinate of the fixed point
+        let c = 0; // z-coordinate of the fixed point (not used in 2D visualization)
+        let t = 0; // time coordinate
+        let fixedSymbol = 'X'; // Symbol for the fixed point
+        let particles = []; // Array to hold particle objects
+
+        function setup() {
+            let canvas = createCanvas(300, 300); // Reduced canvas size
+            canvas.parent('visualization-canvas');
+            setInterval(updateTime, 1000); // Update time every second
+            for (let i = 0; i < 50; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function draw() {
+            background(30, 30, 30, 25); // Slightly transparent to create a fading effect
+            for (let particle of particles) {
+                particle.update();
+                particle.show();
+            }
+            drawConstantPoint(a, b);
+        }
+
+        function drawConstantPoint(x, y) {
+            fill(255, 0, 0);
+            textSize(32);
+            textAlign(CENTER, CENTER);
+            text(fixedSymbol, x + width / 2, y + height / 2); // Centered in canvas
+            fill(200);
+            textSize(12);
+            text(`(${x}, ${y}, ${c}, ${t})`, x + width / 2, y + height / 2 - 40); // Centered in canvas with time
+        }
+
+        function updateTime() {
+            t++;
+            redraw();
+        }
+
+        class Particle {
+            constructor() {
+                this.x = random(width);
+                this.y = random(height);
+                this.vx = random(-3, 3); // Increased speed
+                this.vy = random(-3, 3); // Increased speed
+                this.alpha = 255;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x < 0 || this.x > width) {
+                    this.vx *= -1;
+                }
+                if (this.y < 0 || this.y > height) {
+                    this.vy *= -1;
+                }
+            }
+
+            show() {
+                noStroke();
+                fill(255, this.alpha);
+                ellipse(this.x, this.y, 5);
+            }
+        }
+
+        function updateExplanation() {
+            let explanation = `
+                <p>Initially, the fixed point is at (0, 0, 0, 0).</p>
+                <p>As time progresses, represented by t, the coordinates become (0, 0, 0, t), where t increases.</p>
+                <p class="quote">"In an ever-changing world, there is a point that never moves and serves as a constant reference. If we treat this point as a function within a four-dimensional Cartesian coordinate system, the initial moment could be represented as (0, 0, 0, 0)."</p>
+                <p>Let's denote the coordinates as (x, y, z, t):</p>
+                <ul>
+                    <li>x: spatial coordinate along the x-axis.</li>
+                    <li>y: spatial coordinate along the y-axis.</li>
+                    <li>z: spatial coordinate indicating height.</li>
+                    <li>t: time.</li>
+                </ul>
+                <p>This mathematical expression captures the essence of a constant spatial point in an ever-changing world, with time being the only variable in this function.</p>`;
+            document.getElementById('explanation').innerHTML = explanation;
+        }
+
+        updateExplanation();
+    </script>
+</body>
+</html>
