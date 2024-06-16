@@ -1,5 +1,5 @@
 # ECW
-Constant Point in an Ever Changing World (ECW)
+Constant Point in an Ever Changing World (ECW): https://interstellar-hitchhiker.github.io/ECW/
 
 This project visualizes the concept of a constant spatial point in an ever-changing world, using a dynamic animation created with p5.js. The visualization illustrates a fixed point, represented by the symbol "X," which remains constant while time progresses and particles move around it like Pong balls, symbolizing the flux and movement in the surrounding environment.
 Purpose
@@ -18,7 +18,7 @@ Usage
 
     bash
 
-    git clone https://github.com/yourusername/constant-point.git
+    git clone https://github.com/yourusername/ECW.git
     cd constant-point
 
     Open index.html in a Browser:
