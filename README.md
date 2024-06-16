@@ -1,5 +1,5 @@
 # ECW
-Constant Point in a Changing World
+Constant Point in an Ever Changing World (ECW)
 
 This project visualizes the concept of a constant spatial point in an ever-changing world, using a dynamic animation created with p5.js. The visualization illustrates a fixed point, represented by the symbol "X," which remains constant while time progresses and particles move around it like Pong balls, symbolizing the flux and movement in the surrounding environment.
 Purpose
