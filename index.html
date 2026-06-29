@@ -1,1 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Constant Point Lab</title>
+  <style>
+    :root{
+      --bg:#05070d;
+      --panel:rgba(8,13,24,.82);
+      --panel2:rgba(17,25,42,.92);
+      --line:rgba(255,255,255,.16);
+      --text:#f2f7ff;
+      --muted:#aab8cf;
+      --hot:#ff3f6e;
+      --cyan:#65d9ff;
+      --gold:#ffd166;
+      --green:#8dffb5;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block;background:#05070d;z-index:0;touch-action:none}
+    .hud{position:fixed;z-index:5;top:14px;left:14px;width:min(420px,calc(100vw - 28px));max-height:calc(100vh - 28px);overflow:auto;padding:14px;border:1px solid var(--line);border-radius:20px;background:var(--panel);box-shadow:0 20px 60px rgba(0,0,0,.45);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+    h1{font-size:20px;line-height:1.12;margin:0 0 6px;letter-spacing:-.02em}
+    .sub{margin:0 0 12px;color:var(--muted);font-size:13px;line-height:1.42}
+    .buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+    button{border:1px solid var(--line);border-radius:13px;background:var(--panel2);color:var(--text);padding:10px 9px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:transform .08s ease,border-color .1s ease,filter .1s ease}
+    button:hover{border-color:rgba(101,217,255,.8);filter:brightness(1.14)}
+    button:active{transform:translateY(1px) scale(.99)}
+    .main{background:linear-gradient(180deg,rgba(255,63,110,.96),rgba(160,35,68,.96));border-color:rgba(255,120,150,.7)}
+    .section{margin:14px 0 7px;color:#d5def0;font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+    label.range{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin:9px 0;color:var(--muted);font-size:13px}
+    input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--cyan)}
+    .toggles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    .toggle{display:flex;align-items:center;gap:7px;padding:9px 10px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.05);color:var(--muted);font-size:12px;font-weight:700}
+    .toggle input{accent-color:var(--hot)}
+    .readout{margin-top:12px;padding:11px;border:1px solid var(--line);border-radius:15px;background:rgba(0,0,0,.28);color:var(--muted);font-size:12.5px;line-height:1.45}
+    .readout strong{color:var(--text)}
+    .readout code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--green)}
+    .note{position:fixed;z-index:4;right:14px;bottom:14px;width:min(430px,calc(100vw - 28px));padding:13px 14px;border:1px solid var(--line);border-radius:20px;background:rgba(8,13,24,.78);box-shadow:0 20px 60px rgba(0,0,0,.45);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--muted);font-size:13px;line-height:1.43}
+    .note strong{color:var(--text)}
+    .kbd{display:inline-block;min-width:1.5em;padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;background:rgba(255,255,255,.08);color:var(--text);font-size:12px;text-align:center}
+    .error{position:fixed;z-index:20;inset:auto 14px 14px 14px;padding:12px;border:1px solid rgba(255,80,100,.8);border-radius:14px;background:rgba(80,0,20,.9);color:white;font-family:ui-monospace,monospace;font-size:12px;white-space:pre-wrap;display:none}
+    @media(max-width:760px){.hud{top:10px;left:10px;width:calc(100vw - 20px);max-height:52vh;padding:12px}.buttons{grid-template-columns:repeat(2,1fr)}.note{left:10px;right:10px;bottom:10px;width:auto;max-height:26vh;overflow:auto}h1{font-size:18px}.sub{font-size:12px}}
+  </style>
+</head>
+<body>
+  <canvas id="canvas" aria-label="Animated constant point visualization"></canvas>
+
+  <aside class="hud">
+    <h1>Constant Point Lab</h1>
+    <p class="sub">Watch the red <strong>X</strong>. In one frame it is fixed; in another it appears to move. The particles make change visible around the reference point.</p>
+
+    <div class="buttons">
+      <button class="main" id="burstBtn">Disturb</button>
+      <button id="frameBtn">Frame</button>
+      <button id="pauseBtn">Pause</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+
+    <div class="section">Motion</div>
+    <label class="range">Particle count <span id="countVal">120</span><input id="count" type="range" min="20" max="260" value="120" step="5"></label>
+    <label class="range">World energy <span id="energyVal">70%</span><input id="energy" type="range" min="0" max="100" value="70" step="1"></label>
+    <label class="range">Trail memory <span id="trailVal">55</span><input id="trail" type="range" min="0" max="120" value="55" step="1"></label>
+    <label class="range">Time speed <span id="timeVal">1.0×</span><input id="timeSpeed" type="range" min="0" max="220" value="100" step="5"></label>
+
+    <div class="section">Display</div>
+    <div class="toggles">
+      <label class="toggle"><input id="grid" type="checkbox" checked> Warped grid</label>
+      <label class="toggle"><input id="rings" type="checkbox" checked> Metric rings</label>
+      <label class="toggle"><input id="trails" type="checkbox" checked> Trails</label>
+      <label class="toggle"><input id="labels" type="checkbox" checked> Labels</label>
+    </div>
+
+    <div class="readout" id="readout"></div>
+  </aside>
+
+  <section class="note">
+    <strong>What this is doing:</strong> the red X is the constant spatial point, <code>X=(0,0,0,t)</code>. The particles show change; the rings and grid show measurement. Press <strong>Frame</strong> to see the same system from different reference frames. Click or tap the field to send a ripple.
+    <br><br>Keys: <span class="kbd">D</span> disturb, <span class="kbd">F</span> frame, <span class="kbd">Space</span> pause.
+  </section>
+
+  <pre class="error" id="errorBox"></pre>
+
+  <script>
+  (function(){
+    'use strict';
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const errorBox = document.getElementById('errorBox');
+
+    window.addEventListener('error', function(e){
+      errorBox.style.display = 'block';
+      errorBox.textContent = 'JavaScript error:\n' + e.message + '\nLine: ' + e.lineno;
+    });
+
+    const ui = {
+      burstBtn: document.getElementById('burstBtn'),
+      frameBtn: document.getElementById('frameBtn'),
+      pauseBtn: document.getElementById('pauseBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+      count: document.getElementById('count'),
+      energy: document.getElementById('energy'),
+      trail: document.getElementById('trail'),
+      timeSpeed: document.getElementById('timeSpeed'),
+      countVal: document.getElementById('countVal'),
+      energyVal: document.getElementById('energyVal'),
+      trailVal: document.getElementById('trailVal'),
+      timeVal: document.getElementById('timeVal'),
+      grid: document.getElementById('grid'),
+      rings: document.getElementById('rings'),
+      trails: document.getElementById('trails'),
+      labels: document.getElementById('labels'),
+      readout: document.getElementById('readout')
+    };
+
+    let W = 1, H = 1, DPR = 1;
+    const world = { w: 1100, h: 720 };
+    const fixed = { x: 0, y: 0, z: 0 };
+    const camera = { x:0, y:0, scale:1, tx:0, ty:0, ts:1 };
+    let particles = [];
+    let ripples = [];
+    let t = 0;
+    let last = performance.now();
+    let paused = false;
+    let frameIndex = 0;
+    let tracked = 0;
+    let flash = 0;
+    const frames = [
+      { id:'anchor', name:'X-frame' },
+      { id:'drift', name:'drifting observer' },
+      { id:'particle', name:'particle-frame' }
+    ];
+    const colors = [
+      [101,217,255], [141,255,181], [255,209,102], [255,83,126], [190,134,255], [255,255,255]
+    ];
+
+    function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+    function lerp(a,b,n){ return a + (b-a)*n; }
+    function rand(a,b){ return a + Math.random()*(b-a); }
+    function hypot(x,y){ return Math.sqrt(x*x+y*y); }
+
+    function resize(){
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      W = Math.max(320, window.innerWidth);
+      H = Math.max(320, window.innerHeight);
+      canvas.width = Math.floor(W * DPR);
+      canvas.height = Math.floor(H * DPR);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(DPR,0,0,DPR,0,0);
+      camera.ts = Math.min(W / world.w, H / world.h) * 0.88;
+      if(!isFinite(camera.scale) || camera.scale <= 0) camera.scale = camera.ts;
+    }
+
+    function makeParticle(i){
+      const a = rand(0, Math.PI*2);
+      const r = Math.sqrt(Math.random()) * rand(40, 340);
+      const speed = rand(45, 145);
+      return {
+        x: Math.cos(a)*r,
+        y: Math.sin(a)*r,
+        vx: -Math.sin(a)*speed + rand(-55,55),
+        vy: Math.cos(a)*speed + rand(-55,55),
+        size: rand(3,8),
+        color: colors[i % colors.length],
+        spin: rand(-1,1),
+        phase: rand(0, Math.PI*2),
+        trail: []
+      };
+    }
+
+    function setCount(n){
+      n = Number(n);
+      while(particles.length < n) particles.push(makeParticle(particles.length));
+      while(particles.length > n) particles.pop();
+      tracked = clamp(tracked, 0, Math.max(0, particles.length-1));
+    }
+
+    function reset(){
+      particles = [];
+      ripples = [];
+      t = 0;
+      flash = 0;
+      setCount(Number(ui.count.value));
+      tracked = Math.floor(Math.random() * particles.length);
+      camera.x = camera.y = camera.tx = camera.ty = 0;
+      camera.scale = camera.ts;
+      disturb(0,0,1.1);
+    }
+
+    function screenToWorld(px,py){
+      return { x:(px - W/2)/camera.scale + camera.x, y:(py - H/2)/camera.scale + camera.y };
+    }
+    function worldToScreen(x,y){
+      return { x:W/2 + (x-camera.x)*camera.scale, y:H/2 + (y-camera.y)*camera.scale };
+    }
+
+    function disturb(x,y,power){
+      ripples.push({ x:x, y:y, r:8, age:0, life:2.1, power:power || 1 });
+      flash = Math.min(1, flash + 0.32 * (power || 1));
+    }
+
+    function bigDisturb(){
+      disturb(0,0,1.45);
+      for(let i=0;i<4;i++) disturb(rand(-420,420), rand(-260,260), rand(.55,1.0));
+    }
+
+    function vectorField(x,y,time,energy){
+      const sx = x * 0.006, sy = y * 0.006;
+      const swirl = Math.sin(sy*1.7 + time*.9) + Math.cos(sx*1.3 - time*.7);
+      const angle = Math.atan2(y,x);
+      const d = Math.max(12, hypot(x,y));
+      const orbit = 100 / Math.sqrt(d);
+      return {
+        x: (Math.sin(sy + time*.55)*52 + Math.cos((sx+sy)*.9 - time*.9)*28 - Math.sin(angle)*orbit*swirl) * energy,
+        y: (Math.cos(sx - time*.5)*52 + Math.sin((sx-sy)*.9 + time*.8)*28 + Math.cos(angle)*orbit*swirl) * energy
+      };
+    }
+
+    function updateCamera(dt){
+      const frame = frames[frameIndex].id;
+      camera.ts = Math.min(W / world.w, H / world.h) * 0.88;
+      if(frame === 'anchor'){
+        camera.tx = 0; camera.ty = 0;
+      } else if(frame === 'drift'){
+        camera.tx = Math.sin(t*.23)*180 + Math.sin(t*.061)*90;
+        camera.ty = Math.cos(t*.19)*110 + Math.sin(t*.11)*60;
+      } else {
+        const p = particles[tracked] || particles[0] || {x:0,y:0};
+        camera.tx = p.x; camera.ty = p.y;
+        camera.ts = Math.min(W / world.w, H / world.h) * 1.25;
+      }
+      const k = 1 - Math.pow(0.002, dt);
+      camera.x = lerp(camera.x, camera.tx, k);
+      camera.y = lerp(camera.y, camera.ty, k);
+      camera.scale = lerp(camera.scale, camera.ts, k);
+    }
+
+    function updateParticles(dt){
+      const energy = Number(ui.energy.value) / 100;
+      const maxTrail = Number(ui.trail.value);
+      const maxSpeed = 240 + energy * 260;
+
+      for(const p of particles){
+        const f = vectorField(p.x, p.y, t+p.phase, energy);
+        p.vx += f.x * dt;
+        p.vy += f.y * dt;
+
+        for(const r of ripples){
+          const dx = p.x - r.x, dy = p.y - r.y;
+          const dist = hypot(dx,dy) || 1;
+          const shell = Math.abs(dist - r.r);
+          const kick = Math.max(0, 1 - shell/85) * Math.max(0,1-r.age/r.life) * r.power;
+          p.vx += (dx/dist) * kick * 720 * dt;
+          p.vy += (dy/dist) * kick * 720 * dt;
+        }
+
+        // Small attraction away from total disorder: readable motion around X.
+        const d = hypot(p.x,p.y) || 1;
+        p.vx += (-p.x/d) * energy * 16 * dt;
+        p.vy += (-p.y/d) * energy * 16 * dt;
+
+        const damp = Math.pow(0.991, dt*60);
+        p.vx *= damp; p.vy *= damp;
+        const sp = hypot(p.vx,p.vy);
+        if(sp > maxSpeed){ p.vx = p.vx/sp*maxSpeed; p.vy = p.vy/sp*maxSpeed; }
+
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+
+        const bx = world.w/2, by = world.h/2;
+        if(p.x < -bx){ p.x=-bx; p.vx=Math.abs(p.vx)*rand(.78,1.05); }
+        if(p.x > bx){ p.x=bx; p.vx=-Math.abs(p.vx)*rand(.78,1.05); }
+        if(p.y < -by){ p.y=-by; p.vy=Math.abs(p.vy)*rand(.78,1.05); }
+        if(p.y > by){ p.y=by; p.vy=-Math.abs(p.vy)*rand(.78,1.05); }
+
+        if(ui.trails.checked && maxTrail > 0){
+          p.trail.push({x:p.x,y:p.y});
+          if(p.trail.length > maxTrail) p.trail.splice(0, p.trail.length - maxTrail);
+        } else p.trail.length = 0;
+      }
+
+      for(let i=ripples.length-1;i>=0;i--){
+        const r = ripples[i];
+        r.age += dt;
+        r.r += (210 + r.power*90) * dt;
+        if(r.age > r.life) ripples.splice(i,1);
+      }
+      flash = Math.max(0, flash - dt*1.4);
+    }
+
+    function background(){
+      const g = ctx.createRadialGradient(W*.5,H*.42,0,W*.5,H*.42,Math.max(W,H)*.78);
+      g.addColorStop(0,'#14203a');
+      g.addColorStop(.55,'#070b16');
+      g.addColorStop(1,'#030409');
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,W,H);
+      if(flash > 0){
+        ctx.fillStyle = 'rgba(255,63,110,' + (flash*.16).toFixed(3) + ')';
+        ctx.fillRect(0,0,W,H);
+      }
+    }
+
+    function drawGrid(){
+      if(!ui.grid.checked) return;
+      const step = 80;
+      const energy = Number(ui.energy.value)/100;
+      ctx.save();
+      ctx.lineWidth = 1;
+      for(let x=-world.w/2; x<=world.w/2; x+=step){
+        ctx.beginPath();
+        for(let y=-world.h/2; y<=world.h/2; y+=12){
+          const v = vectorField(x,y,t*.65,energy*.035);
+          const s = worldToScreen(x+v.x,y+v.y);
+          if(y===-world.h/2) ctx.moveTo(s.x,s.y); else ctx.lineTo(s.x,s.y);
+        }
+        ctx.strokeStyle = Math.abs(x)<1 ? 'rgba(255,63,110,.42)' : 'rgba(255,255,255,.065)';
+        ctx.stroke();
+      }
+      for(let y=-world.h/2; y<=world.h/2; y+=step){
+        ctx.beginPath();
+        for(let x=-world.w/2; x<=world.w/2; x+=12){
+          const v = vectorField(x,y,t*.65,energy*.035);
+          const s = worldToScreen(x+v.x,y+v.y);
+          if(x===-world.w/2) ctx.moveTo(s.x,s.y); else ctx.lineTo(s.x,s.y);
+        }
+        ctx.strokeStyle = Math.abs(y)<1 ? 'rgba(255,63,110,.42)' : 'rgba(255,255,255,.065)';
+        ctx.stroke();
+      }
+      const a = worldToScreen(-world.w/2,-world.h/2);
+      const b = worldToScreen(world.w/2,world.h/2);
+      ctx.strokeStyle = 'rgba(255,255,255,.18)';
+      ctx.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y);
+      ctx.restore();
+    }
+
+    function drawRings(){
+      if(!ui.rings.checked) return;
+      const o = worldToScreen(0,0);
+      ctx.save();
+      for(let r=80;r<=520;r+=80){
+        ctx.beginPath();
+        ctx.arc(o.x,o.y,r*camera.scale*(1+Math.sin(t*1.6+r*.04)*.025),0,Math.PI*2);
+        ctx.strokeStyle = r%160===0 ? 'rgba(101,217,255,.24)' : 'rgba(255,255,255,.10)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        if(ui.labels.checked && camera.scale>.42){
+          ctx.fillStyle = 'rgba(170,184,207,.62)';
+          ctx.font = '11px ui-monospace,SFMono-Regular,Menlo,monospace';
+          ctx.fillText('r=' + r, o.x + r*camera.scale + 4, o.y - 3);
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawTrails(){
+      if(!ui.trails.checked) return;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for(const p of particles){
+        if(p.trail.length < 2) continue;
+        const c = p.color;
+        ctx.beginPath();
+        for(let i=0;i<p.trail.length;i++){
+          const s = worldToScreen(p.trail[i].x,p.trail[i].y);
+          if(i===0) ctx.moveTo(s.x,s.y); else ctx.lineTo(s.x,s.y);
+        }
+        ctx.strokeStyle = 'rgba('+c[0]+','+c[1]+','+c[2]+','+clamp(p.trail.length/130,.08,.46)+')';
+        ctx.lineWidth = clamp(p.size*camera.scale*.48,.45,2.2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawRipples(){
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      for(const r of ripples){
+        const s = worldToScreen(r.x,r.y);
+        const a = Math.max(0,1-r.age/r.life);
+        for(let i=0;i<3;i++){
+          ctx.beginPath();
+          ctx.arc(s.x,s.y,Math.max(0,(r.r-i*22))*camera.scale,0,Math.PI*2);
+          ctx.strokeStyle = 'rgba(255,63,110,' + (a*(.42-i*.1)).toFixed(3) + ')';
+          ctx.lineWidth = Math.max(1,(5-i)*camera.scale);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawParticles(){
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for(let i=0;i<particles.length;i++){
+        const p = particles[i], s = worldToScreen(p.x,p.y), c = p.color;
+        const speed = hypot(p.vx,p.vy);
+        const size = clamp(p.size*camera.scale*(1+speed/700),1.7,11);
+        ctx.beginPath();
+        ctx.arc(s.x,s.y,size*3.8,0,Math.PI*2);
+        ctx.fillStyle = 'rgba('+c[0]+','+c[1]+','+c[2]+',.09)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(s.x,s.y,size,0,Math.PI*2);
+        ctx.fillStyle = 'rgba('+c[0]+','+c[1]+','+c[2]+',.96)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(s.x-size*.28,s.y-size*.32,Math.max(1,size*.28),0,Math.PI*2);
+        ctx.fillStyle = 'rgba(255,255,255,.9)';
+        ctx.fill();
+        if(frames[frameIndex].id === 'particle' && i === tracked){
+          ctx.beginPath();
+          ctx.arc(s.x,s.y,size+10,0,Math.PI*2);
+          ctx.strokeStyle = 'rgba(255,209,102,.95)';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    function roundedRect(x,y,w,h,r){
+      ctx.beginPath();
+      ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+      ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+    }
+
+    function drawX(){
+      const o = worldToScreen(0,0);
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      const glow = ctx.createRadialGradient(o.x,o.y,0,o.x,o.y,95*camera.scale);
+      glow.addColorStop(0,'rgba(255,63,110,.65)');
+      glow.addColorStop(.45,'rgba(255,63,110,.22)');
+      glow.addColorStop(1,'rgba(255,63,110,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(o.x-140*camera.scale,o.y-140*camera.scale,280*camera.scale,280*camera.scale);
+
+      ctx.strokeStyle = 'rgba(255,63,110,.92)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(o.x-40*camera.scale,o.y); ctx.lineTo(o.x+40*camera.scale,o.y);
+      ctx.moveTo(o.x,o.y-40*camera.scale); ctx.lineTo(o.x,o.y+40*camera.scale);
+      ctx.stroke();
+
+      ctx.font = Math.max(34,56*camera.scale*(1+Math.sin(t*3)*.05)) + 'px Georgia,serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#ff3f6e'; ctx.shadowBlur = 26;
+      ctx.fillStyle = '#ff3f6e'; ctx.fillText('X',o.x,o.y+1);
+      ctx.shadowBlur = 0;
+
+      if(ui.labels.checked){
+        const line1 = 'X = (0, 0, 0, t)';
+        const line2 = 't = ' + t.toFixed(2) + '   spatial position constant';
+        ctx.font = '12px ui-monospace,SFMono-Regular,Menlo,monospace';
+        const w = Math.max(ctx.measureText(line1).width, ctx.measureText(line2).width) + 24;
+        const h = 46;
+        const bx = clamp(o.x + 22, 12, W - w - 12);
+        const by = clamp(o.y - 86*camera.scale, 58, H - 12);
+        roundedRect(bx,by-h,w,h,12);
+        ctx.fillStyle = 'rgba(6,10,18,.76)'; ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.stroke();
+        ctx.fillStyle = 'rgba(141,255,181,.98)'; ctx.fillText(line1,bx+12,by-27);
+        ctx.fillStyle = 'rgba(170,184,207,.9)'; ctx.fillText(line2,bx+12,by-10);
+      }
+      ctx.restore();
+    }
+
+    function readout(){
+      let mean = 0, speed = 0;
+      for(const p of particles){ mean += hypot(p.x,p.y); speed += hypot(p.vx,p.vy); }
+      mean = particles.length ? mean/particles.length : 0;
+      speed = particles.length ? speed/particles.length : 0;
+      const f = frames[frameIndex];
+      let meaning = '';
+      if(f.id === 'anchor') meaning = 'X is locked to the centre, so surrounding change becomes measurable.';
+      if(f.id === 'drift') meaning = 'The observer drifts, so even the constant appears to move on screen.';
+      if(f.id === 'particle') meaning = 'The camera follows one particle; the constant becomes a moving target from that viewpoint.';
+      ui.readout.innerHTML = '<strong>Frame:</strong> ' + f.name + '<br>' +
+        '<strong>Invariant:</strong> <code>X=(0,0,0,' + t.toFixed(2) + ')</code><br>' +
+        '<strong>Mean distance from X:</strong> ' + mean.toFixed(1) + ' units<br>' +
+        '<strong>Average particle speed:</strong> ' + speed.toFixed(1) + ' units/s<br>' +
+        '<strong>Reading:</strong> ' + meaning;
+    }
+
+    function labels(){
+      ui.countVal.textContent = ui.count.value;
+      ui.energyVal.textContent = ui.energy.value + '%';
+      ui.trailVal.textContent = ui.trail.value;
+      ui.timeVal.textContent = (Number(ui.timeSpeed.value)/100).toFixed(1) + '×';
+      ui.frameBtn.textContent = frames[frameIndex].name;
+    }
+
+    function render(){
+      background();
+      drawGrid();
+      drawRings();
+      drawTrails();
+      drawRipples();
+      drawParticles();
+      drawX();
+    }
+
+    function loop(now){
+      const raw = Math.min(.05, (now-last)/1000 || .016);
+      last = now;
+      if(!paused){
+        const clock = Number(ui.timeSpeed.value)/100;
+        const dt = raw * clock;
+        t += dt;
+        updateParticles(dt);
+      }
+      updateCamera(raw);
+      render();
+      if(Math.floor(now/150) !== Math.floor((now-raw*1000)/150)) readout();
+      requestAnimationFrame(loop);
+    }
+
+    ui.burstBtn.addEventListener('click', bigDisturb);
+    ui.frameBtn.addEventListener('click', function(){
+      frameIndex = (frameIndex + 1) % frames.length;
+      if(frames[frameIndex].id === 'particle') tracked = Math.floor(Math.random()*particles.length);
+      labels(); readout();
+    });
+    ui.pauseBtn.addEventListener('click', function(){
+      paused = !paused;
+      ui.pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+    });
+    ui.resetBtn.addEventListener('click', function(){ reset(); readout(); });
+
+    ui.count.addEventListener('input', function(){ setCount(ui.count.value); labels(); readout(); });
+    [ui.energy,ui.trail,ui.timeSpeed].forEach(function(el){ el.addEventListener('input', function(){ labels(); }); });
+    [ui.grid,ui.rings,ui.trails,ui.labels].forEach(function(el){ el.addEventListener('change', render); });
+
+    canvas.addEventListener('pointerdown', function(e){
+      const rect = canvas.getBoundingClientRect();
+      const w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+      disturb(w.x,w.y,1.15);
+    });
+
+    window.addEventListener('keydown', function(e){
+      const tag = document.activeElement && document.activeElement.tagName ? document.activeElement.tagName.toLowerCase() : '';
+      if(tag === 'input' || tag === 'button') return;
+      if(e.code === 'Space'){ e.preventDefault(); ui.pauseBtn.click(); }
+      if(e.key.toLowerCase() === 'd') bigDisturb();
+      if(e.key.toLowerCase() === 'f') ui.frameBtn.click();
+    });
+    window.addEventListener('resize', resize);
+
+    resize();
+    labels();
+    reset();
+    readout();
+    requestAnimationFrame(loop);
+  })();
+  </script>
+</body>
+</html>
 
