@@ -1,7 +1,5 @@
 # Constant Point in an Ever Changing World (ECW)
 
-# Constant Point in an Ever-Changing World
-
 A small browser animation about constancy, motion, and perspective. A fixed red **X** remains the reference point while particles, trails, and ripples move around it, showing how change becomes readable only when measured against something stable.
 
 ## Version 2
